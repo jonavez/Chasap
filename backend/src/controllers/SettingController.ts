@@ -14,6 +14,19 @@ import Company from "../models/Company";
 import UpdateSettingService from "../services/SettingServices/UpdateSettingService";
 import ListSettingsService from "../services/SettingServices/ListSettingsService";
 import ShowSettingsService from "../services/SettingServices/ShowSettingsService";
+import { getPublicCaptchaSettings } from "../services/CaptchaServices/VerifyCaptchaService";
+
+/**
+ * Endpoint público para obtener configuración de captcha (sin secret key)
+ * Usado por el frontend para saber qué tipo de captcha mostrar
+ */
+export const getCaptchaPublic = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const captchaSettings = await getPublicCaptchaSettings();
+  return res.status(200).json(captchaSettings);
+};
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;

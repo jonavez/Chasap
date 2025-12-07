@@ -8,6 +8,9 @@ const upload = multer(uploadConfig);
 
 const settingRoutes = Router();
 
+// Ruta pública para obtener configuración de captcha (sin autenticación)
+settingRoutes.get("/settings/captcha/public", SettingController.getCaptchaPublic);
+
 settingRoutes.get("/settings", isAuth, SettingController.index);
 
 settingRoutes.get("/settings/:settingKey", SettingController.show);

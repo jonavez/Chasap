@@ -4,7 +4,8 @@ import * as Yup from "yup";
 import Gerencianet from "gn-api-sdk-typescript";
 import AppError from "../errors/AppError";
 
-import options from "../config/Gn";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const options = require("../config/Gn");
 import Company from "../models/Company";
 import Invoices from "../models/Invoices";
 import Subscriptions from "../models/Subscriptions";

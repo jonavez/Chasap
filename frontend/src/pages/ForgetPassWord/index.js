@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import qs from "query-string";
 import IconButton from "@material-ui/core/IconButton";
 import VisibilityIcon from "@material-ui/icons/Visibility";
 import VisibilityOffIcon from "@material-ui/icons/VisibilityOff";
+import ArrowBackIcon from "@material-ui/icons/ArrowBack";
 import InputAdornment from "@material-ui/core/InputAdornment";
 import * as Yup from "yup";
 import { useHistory } from "react-router-dom";
@@ -20,10 +21,11 @@ import Container from "@material-ui/core/Container";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import moment from "moment";
-import { toast } from 'react-toastify'; 
+import { toast } from 'react-toastify';
 import toastError from '../../errors/toastError';
 import 'react-toastify/dist/ReactToastify.css';
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import CaptchaWidget from "../../components/CaptchaWidget";
 
 
 const logo = `${process.env.REACT_APP_BACKEND_URL}/public/logotipos/login.png`;
@@ -75,7 +77,8 @@ const ForgetPassword = () => {
   const [showResetPasswordButton, setShowResetPasswordButton] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState(""); // Estado para mensagens de erro
+  const [error, setError] = useState(""); // Estado para mensajes de error
+  const captchaRef = useRef(null);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -104,24 +107,24 @@ const ForgetPassword = () => {
   const [user] = useState(initialState);
   const dueDate = moment().add(3, "day").format();
 
-const handleSendEmail = async (values) => {
-  const email = values.email;
-  try {
-    const response = await api.post(
-      `${process.env.REACT_APP_BACKEND_URL}/forgetpassword/${email}`
-    );
-    console.log("API Response:", response.data);
+  const handleSendEmail = async (values) => {
+    const email = values.email;
+    try {
+      const response = await api.post(
+        `${process.env.REACT_APP_BACKEND_URL}/forgetpassword/${email}`
+      );
+      console.log("API Response:", response.data);
 
-    if (response.data.status === 404) {
-      toast.error("Email no encontrado");
-    } else {
-      toast.success(i18n.t("¡Correo electrónico enviado con éxito!"));
+      if (response.data.status === 404) {
+        toast.error("Email no encontrado");
+      } else {
+        toast.success(i18n.t("¡Correo electrónico enviado con éxito!"));
+      }
+    } catch (err) {
+      console.log("API Error:", err);
+      toastError(err);
     }
-  } catch (err) {
-    console.log("API Error:", err);
-    toastError(err);
-  }
-};
+  };
 
   const handleResetPassword = async (values) => {
     const email = values.email;
@@ -145,21 +148,21 @@ const handleSendEmail = async (values) => {
 
   const isResetPasswordButtonClicked = showResetPasswordButton;
   const UserSchema = Yup.object().shape({
-    email: Yup.string().email("Invalid email").required("Required"),
+    email: Yup.string().email("Email inválido").required("Obligatorio"),
     newPassword: isResetPasswordButtonClicked
       ? Yup.string()
-          .required("Campo obrigatório")
-          .matches(
-            passwordRegex,
-            "Sua senha precisa ter no mínimo 8 caracteres, sendo uma letra maiúscula, uma minúscula e um número."
-          )
-      : Yup.string(), // Sem validação se não for redefinição de senha
+        .required("Campo obligatorio")
+        .matches(
+          passwordRegex,
+          "Tu contraseña necesita mínimo 8 caracteres, incluyendo una mayúscula, una minúscula y un número."
+        )
+      : Yup.string(), // Sin validación si no es restablecimiento
     confirmPassword: Yup.string().when("newPassword", {
       is: (newPassword) => isResetPasswordButtonClicked && newPassword,
       then: Yup.string()
-        .oneOf([Yup.ref("newPassword"), null], "As senhas não correspondem")
-        .required("Campo obrigatório"),
-      otherwise: Yup.string(), // Sem validação se não for redefinição de senha
+        .oneOf([Yup.ref("newPassword"), null], "Las contraseñas no coinciden")
+        .required("Campo obligatorio"),
+      otherwise: Yup.string(), // Sin validación si no es restablecimiento
     }),
   });
 
@@ -176,8 +179,23 @@ const handleSendEmail = async (values) => {
             />
           </div>
           <Typography component="h1" variant="h5">
-            {i18n.t("Redefinir senha")}
+            {i18n.t("Restablecer contraseña")}
           </Typography>
+
+          {/* Botón volver al login */}
+          <Button
+            startIcon={<ArrowBackIcon />}
+            onClick={() => history.push("/login")}
+            style={{
+              marginTop: 16,
+              marginBottom: 8,
+              textTransform: 'none',
+              color: '#666'
+            }}
+          >
+            Volver al inicio de sesión
+          </Button>
+
           <Formik
             initialValues={{
               email: "",
@@ -224,7 +242,7 @@ const handleSendEmail = async (values) => {
                           variant="outlined"
                           fullWidth
                           id="token"
-                          label="Código de Verificação"
+                          label="Código de Verificación"
                           name="token"
                           error={touched.token && Boolean(errors.token)}
                           helperText={touched.token && errors.token}
@@ -274,7 +292,7 @@ const handleSendEmail = async (values) => {
                           fullWidth
                           type={showConfirmPassword ? "text" : "password"}
                           id="confirmPassword"
-                          label="Confirme a senha"
+                          label="Confirmar contraseña"
                           name="confirmPassword"
                           error={
                             touched.confirmPassword &&
@@ -314,18 +332,23 @@ const handleSendEmail = async (values) => {
                     color="primary"
                     className={classes.submit}
                   >
-                    Redefinir Senha
+                    Restablecer Contraseña
                   </Button>
                 ) : (
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="primary"
-                    className={classes.submit}
-                  >
-                    Enviar Email
-                  </Button>
+                  <>
+                    {/* Widget de Captcha */}
+                    <CaptchaWidget ref={captchaRef} />
+
+                    <Button
+                      type="submit"
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      className={classes.submit}
+                    >
+                      Enviar Email
+                    </Button>
+                  </>
                 )}
                 <Grid container justifyContent="flex-end">
                   <Grid item>
@@ -335,7 +358,7 @@ const handleSendEmail = async (values) => {
                       component={RouterLink}
                       to="/signup"
                     >
-                      {i18n.t("Não tem uma conta? Cadastre-se!")}
+                      {i18n.t("¿No tienes una cuenta? ¡Regístrate!")}
                     </Link>
                   </Grid>
                 </Grid>

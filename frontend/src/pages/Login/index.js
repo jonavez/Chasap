@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 
 // Material-UI Components
@@ -19,6 +19,7 @@ import useMediaQuery from "@material-ui/core/useMediaQuery";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import CaptchaWidget from "../../components/CaptchaWidget";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -26,8 +27,8 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: theme.palette.type === 'dark' 
-      ? 'linear-gradient(135deg, #121212 0%, #1e1e1e 100%)' 
+    background: theme.palette.type === 'dark'
+      ? 'linear-gradient(135deg, #121212 0%, #1e1e1e 100%)'
       : 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
     position: 'relative',
     overflow: 'hidden',
@@ -79,7 +80,7 @@ const useStyles = makeStyles((theme) => ({
     '& img': {
       width: '70%',
       height: 'auto',
-/*       filter: 'brightness(0) invert(1)', */
+      /*       filter: 'brightness(0) invert(1)', */
     }
   },
   formTitle: {
@@ -146,8 +147,8 @@ const useStyles = makeStyles((theme) => ({
   decorativeCircle: {
     position: 'absolute',
     borderRadius: '50%',
-    background: theme.palette.type === 'dark' 
-      ? 'rgba(255,255,255,0.05)' 
+    background: theme.palette.type === 'dark'
+      ? 'rgba(255,255,255,0.05)'
       : 'rgba(255,255,255,0.1)',
     zIndex: 0,
   }
@@ -161,6 +162,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { handleLogin, loading } = useContext(AuthContext);
   const [viewregister, setviewregister] = useState('disabled');
+  const captchaRef = useRef(null);
 
   const handleChangeInput = (e) => {
     setUser({ ...user, [e.target.name]: e.target.value });
@@ -184,9 +186,20 @@ const Login = () => {
     }
   };
 
-  const handlSubmit = (e) => {
+  const handlSubmit = async (e) => {
     e.preventDefault();
-    handleLogin(user);
+
+    // Obtener token de captcha si está habilitado
+    let captchaToken = null;
+    if (captchaRef.current?.isEnabled()) {
+      captchaToken = await captchaRef.current.getToken();
+      if (!captchaToken) {
+        // Si captcha está habilitado pero no hay token, esperar
+        console.warn("Captcha habilitado pero sin token");
+      }
+    }
+
+    handleLogin({ ...user, captchaToken });
   };
 
   const logo = `${process.env.REACT_APP_BACKEND_URL}/public/logotipos/login.png`;
@@ -198,7 +211,7 @@ const Login = () => {
       {/* Círculos decorativos */}
       <div className={classes.decorativeCircle} style={{ width: 300, height: 300, top: -150, left: -150 }} />
       <div className={classes.decorativeCircle} style={{ width: 200, height: 200, bottom: -100, right: -100 }} />
-      
+
       <div className={classes.loginContainer}>
         <div className={classes.logoContainer}>
           <img src={logoWithRandom} alt="Logo" />
@@ -254,6 +267,9 @@ const Login = () => {
                 ),
               }}
             />
+
+            {/* Widget de Captcha (Turnstile o reCAPTCHA) */}
+            <CaptchaWidget ref={captchaRef} />
 
             <Button
               type="submit"
